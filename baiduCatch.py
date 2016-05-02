@@ -22,6 +22,14 @@ header = {
     'User-Agent':
         'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/48.0.2564.109 Safari/537.36'}
 
+def rpc_char1(text):
+    """
+        将目标文本替换true
+    """
+    text = text.replace('true', "1")
+    text = text.replace('True', "1")
+    return text
+
 
 def get_content_of_floor(soup_floor, docx):
     """
@@ -32,10 +40,11 @@ def get_content_of_floor(soup_floor, docx):
     information = soup_floor.get('data-field', 'N/A')
     if '&quot;' in information:
         information = information.replace('&quot;', '"')
+    information = rpc_char1(information)
     information = json.loads(information)
     time = str(information['content'].get('date', 'N/A'))
     author = information['author'].get('user_name', 'N/A')
-    content = soup_floor.select('div.p_content.p_content_nameplate > cc > div')[0].get_text()
+    content = soup_floor.select('div > div > cc > div')[0].get_text()
     docx.add_paragraph('date:' + time)
     docx.add_paragraph('author:' + author)
     docx.add_paragraph('content:' + content)
@@ -43,11 +52,15 @@ def get_content_of_floor(soup_floor, docx):
 
 
 def rpc_char(text):
-    # 将目标文本替换掉不能作为文件名的字符
-    char_set = ["/", "\\", "?", "*", "<", ">", "|"]
+    """
+        将目标文本替换掉不能作为文件名的字符
+    """
+    char_set = ["/", "\\", "?", "*", "<", ">", "|", '"', "！"]
     for i in char_set:
         text = text.replace(i, " ")
     return text
+
+
 
 
 def isnone_tieba(url):

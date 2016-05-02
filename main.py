@@ -27,16 +27,11 @@ if __name__ == "__main__":
     header = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/48.0.2564.109 '
                       'Safari/537.36'}
+    data = pandas.read_excel('f:\\B.xlsx')
+    for url in data['url']:
+        test = baiduCatch.isnone_tieba(url)
+        if test == 1:
+            baiduCatch.get_tiezi_info(url, header, workfile)
+            logger.info('get url: ' + url)
+        time.sleep(1)
 
-    # data = pandas.read_excel('f:\\B.xlsx')
-    # for url in data['url']:
-    #     test = baiduCatch.isnone_tieba(url)
-    #     if test == 1:
-    #         baiduCatch.get_tiezi_info(url, header, workfile)
-    #         logger.info('get url: ' + url)
-    #     time.sleep(1)
-    url = 'http://tieba.baidu.com/p/2216062687'
-    test = baiduCatch.isnone_tieba(url)
-    if test == 1:
-        baiduCatch.get_tiezi_info(url, header, workfile)
-        logger.info('get url: ' + url)
