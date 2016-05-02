@@ -15,8 +15,9 @@ logger = logging.getLogger('done')
 logger.addHandler(handler)
 logger.setLevel(logging.DEBUG)
 
+# 鉴于docx包的坑爹情况，有必要对于每一个文件都要新建一个对应的实例？但愿不会把系统卡死吧。
 workfile = 'F:\\work_of_spyder\\'
-document = Document()
+
 
 header = {
     'User-Agent':
@@ -55,7 +56,7 @@ def rpc_char(text):
     """
         将目标文本替换掉不能作为文件名的字符
     """
-    char_set = ["/", "\\", "?", "*", "<", ">", "|", '"', "！"]
+    char_set = ["/", "\\", "?", "*", "<", ">", "|", '"', "！", ":","."]
     for i in char_set:
         text = text.replace(i, " ")
     return text
@@ -86,6 +87,9 @@ def get_tiezi_info(url, headers, work_file):
     :param headers:     浏览器参数
     :param work_file:   保存的工作文档路径
     """
+    # 建立docx的句柄
+    document = Document()
+
     page = requests.get(url, headers)
     soup = BeautifulSoup(page.text, 'lxml')
     page_num = soup.select('#thread_theme_5 > div.l_thread_info > ul > li:nth-of-type(2) > '
