@@ -6,7 +6,7 @@ import logging.handlers
 
 # 声明日志区
 # 日志的区域需要另外去写
-log_file = 'F:\\work_of_spyder\\Logfile\\act.log'
+log_file = 'F:\\work_of_spyder\\Logfile\\react.log'
 handler = logging.handlers.RotatingFileHandler(log_file, maxBytes=10 * 1024 * 1024, backupCount=5)
 fmt = '%(asctime)s - %(filename)s:%(lineno)s - %(levelname)s - %(message)s - %(msecs)s'
 formatter = logging.Formatter(fmt)
@@ -15,39 +15,42 @@ logger = logging.getLogger('done')
 logger.addHandler(handler)
 logger.setLevel(logging.DEBUG)
 
-
-
 workfile = 'F:\\work_of_spyder\\'
 document = Document()
-
-main_url = 'http://tieba.baidu.com/p/3618228828'
 
 header = {
     'User-Agent':
         'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/48.0.2564.109 Safari/537.36'}
 
 
-
-def get_content_of_floor(soup_floor, Docx):
+def get_content_of_floor(soup_floor, docx):
     """
     获得每个楼层的作者，发帖时间，以及内容
     :param soup_floor: 楼层的soup节点
-    :param Docx: document的句柄
+    :param docx: document的句柄
     """
     information = soup_floor.get('data-field', 'N/A')
     if '&quot;' in information:
         information = information.replace('&quot;', '"')
     information = json.loads(information)
-    time = str(information['content']['date'])
-    author = information['author']['user_name']
+    time = str(information['content'].get('date', 'N/A'))
+    author = information['author'].get('user_name', 'N/A')
     content = soup_floor.select('div.p_content.p_content_nameplate > cc > div')[0].get_text()
-    Docx.add_paragraph('date:' + time)
-    Docx.add_paragraph('author:' + author)
-    Docx.add_paragraph('content:' + content)
-    Docx.add_paragraph('---------楼层间隔符----------')
+    docx.add_paragraph('date:' + time)
+    docx.add_paragraph('author:' + author)
+    docx.add_paragraph('content:' + content)
+    docx.add_paragraph('---------楼层间隔符----------')
 
 
-def isNone_tieba(url):
+def rpc_char(text):
+    # 将目标文本替换掉不能作为文件名的字符
+    char_set = ["/", "\\", "?", "*", "<", ">", "|"]
+    for i in char_set:
+        text = text.replace(i, " ")
+    return text
+
+
+def isnone_tieba(url):
     """
     判断此贴吧的url是不是空的
     :param url: url呗。不过以后应该是要写个判定格式的。
@@ -55,7 +58,9 @@ def isNone_tieba(url):
     page = requests.get(url, header)
     soup = BeautifulSoup(page.text, 'lxml')
     if soup.select('title')[0].get_text() == '贴吧404':
-        logger.info('无效url:'+url)
+        logger.info('无效url:' + url)
+    elif soup.select('title')[0].get_text() == '百度贴吧':
+        logger.info('无效url:' + url)
     else:
         test = 1
         return test
@@ -78,25 +83,28 @@ def get_tiezi_info(url, headers, work_file):
     time = init.get('data-field', 'N/A')
     time = json.loads(time)
     title = soup.select('title')[0].get_text()
-    document.add_paragraph('url:' + main_url)
+    document.add_paragraph('url:' + url)
     document.add_paragraph("title:" + title)
-    document.add_paragraph("time:" + str(time['content']['date']))
-    document.add_paragraph("author:" + time['author']['user_name'])
-    document.add_paragraph('post_id:' + str(time['content']['post_id']))
+    document.add_paragraph("time:" + str(time['content'].get('date', 'N/A')))
+    document.add_paragraph("author:" + time['author'].get('user_name', 'N/A'))
+    document.add_paragraph('post_id:' + str(time['content'].get('post_id', 'N/A')))
     document.add_paragraph('回复数量:' + soup.select('#thread_theme_5 > div.l_thread_info > ul > li:nth-of-type(2) > '
                                                  'span:nth-''of-type(1)')[0].get_text())
     document.add_paragraph(
         '总页数:' + soup.select('#thread_theme_5 > div.l_thread_info > ul > li:nth-of-type(2) > span:nth-'
                              'of-type(2)')[0].get_text())
-    document.add_paragraph('贴吧名:' + soup.select('a.card_title_fname')[0].get_text())
+    if len(soup.select('a.j_plat_picbox.plat_picbox')) != 0:
+        document.add_paragraph('贴吧名:' + soup.select('a.j_plat_picbox.plat_picbox')[0].get_text())
+    else:
+        document.add_paragraph('贴吧名:' + soup.select('a.card_title_fname')[0].get_text())
     document.add_paragraph('---------楼层间隔符----------')
 
     urls = []
     if int(page_num) == 1:
-        urls.append(main_url)
+        urls.append(url)
     else:
         for i in range(int(page_num)):
-            url = main_url + '?pn=' + str(i + 1)
+            url = url + '?pn=' + str(i + 1)
             urls.append(url)
 
     for each_url in urls:
@@ -107,4 +115,7 @@ def get_tiezi_info(url, headers, work_file):
             get_content_of_floor(each_soup, document)
 
     # save file
+
+    title = rpc_char(title)
+
     document.save(work_file + title + '.docx')
